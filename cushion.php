@@ -2,6 +2,7 @@
 	
 	class Cushion {
 		function Cushion() {
+			// Server Configuration
 			$this->conf = array(
 				"protocol"	=> "https",
 				"server"	=> "",
@@ -9,10 +10,15 @@
 				"user"		=> "",
 				"password"	=> ""
 			);
-			$this->debug_mode = true;
+			
+			// Debug Mode
+			$this->debug_mode 	= true;
+			
 		}
 		
-		function r($method="GET", $q="", $decode=true) {
+		
+		/*** CORE ***/
+		function r($method="GET", $q="", $data=false, $decode=true) {
 			//open connection
 			$ch = curl_init();
 			
@@ -27,6 +33,13 @@
 			//set the url, number of POST vars, POST data
 			curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 	false);
 			curl_setopt($ch, CURLOPT_URL, 				$url."/".$q);
+			if ($data !== false) {
+				// if the data is an array, then we encode it as a json string
+				if (is_array($data)) {
+					$data = json_encode($data);
+				}
+				curl_setopt($ch, CURLOPT_POSTFIELDS, 	$data);
+			}
 			curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 	$method);
 			curl_setopt($ch, CURLOPT_RETURNTRANSFER, 	true);
 			
@@ -42,26 +55,99 @@
 			return $result;
 		}
 		
-		function debug($var, $val) {
+		/*** UTILITIES ***/
+		function debug($label, $data) {
 			if (!$this->debug_mode) {
 				return false;
 			}
 			echo "<div style=\"margin-left: 40px;background-color:#fff;\"><u><h3>".$label."</h3></u><pre style=\"border-left:2px solid #000000;margin:10px;padding:4px;\">".print_r($data, true)."</pre></div>";
 		}
+		function UUID() {
+			return sprintf( '%04x%04x%04x%04x%04x%04x%04x%04x',
+				// 32 bits for "time_low"
+				mt_rand( 0, 0xffff ), mt_rand( 0, 0xffff ),
+				
+				// 16 bits for "time_mid"
+				mt_rand( 0, 0xffff ),
+				
+				// 16 bits for "time_hi_and_version",
+				// four most significant bits holds version number 4
+				mt_rand( 0, 0x0fff ) | 0x4000,
+				
+				// 16 bits, 8 bits for "clk_seq_hi_res",
+				// 8 bits for "clk_seq_low",
+				// two most significant bits holds zero and one for variant DCE1.1
+				mt_rand( 0, 0x3fff ) | 0x8000,
+				
+				// 48 bits for "node"
+				mt_rand( 0, 0xffff ), mt_rand( 0, 0xffff ), mt_rand( 0, 0xffff )
+			);
+		}
 		
+		
+		/*** SERVER MANAGEMENT ***/
+		function server_version($decode=true) {
+			$return = $this->r("GET", "", false, $decode);
+			
+			$this->debug("server_version", $return);
+			
+			return $return["version"];
+		}
+		
+		/*** DATABASE MANAGEMENT ***/
 		function db_list($decode=true) {
-			$return = $this->r("GET","_all_dbs",$decode);
-			debug("db_list", $return);
+			$return = $this->r("GET","_all_dbs", false,$decode);
+			$this->debug("db_list", $return);
 			return $return;
 		}
 		function db_create($name, $decode=true) {
-			$return = $this->r("PUT", $name, $decode);
-			debug("db_create", $return);
+			$return = $this->r("PUT", $name, false, $decode);
+			
+			$this->debug("db_create", $return);
+			
+			if (isset($return["ok"])) {
+				return true;
+			}
 			return $return;
 		}
 		function db_drop($name, $decode=true) {
-			$return = $this->r("DELETE", $name, $decode);
-			debug("db_drop", $return);
+			$return = $this->r("DELETE", $name, false, $decode);
+			
+			$this->debug("db_drop", $return);
+			
+			if (isset($return["ok"])) {
+				return true;
+			}
+			return $return;
+		}
+		
+		/*** DOCUMENT MANAGEMENT ***/
+		function insert($db, $data, $uuid=false, $decode=true, $whole=false) {
+			// generate a UUID if the user doesn't provide one
+			if ($uuid === false) {
+				$uuid = $this->UUID();
+			}
+			$return = $this->r("PUT", $db."/".$uuid, $data, $decode);
+			
+			$this->debug("insert", $return);
+			
+			return $return;
+		}
+		function update($db, $uuid, $data, $_rev=false, $decode=true) {
+			
+			// decoding to be able to check if _rev is specified
+			if (!is_array($data)) {
+				$data = json_decode($data, true);
+			}
+			// if _rev is not specified, we add it; Else we don't touch it.
+			if (!array_key_exists("_rev", $data)) {
+				$data["_rev"] = $_rev;
+			}
+			
+			$return = $this->r("PUT", $db."/".$uuid, $data, $decode);
+			
+			$this->debug("update", $return);
+			
 			return $return;
 		}
 	}
