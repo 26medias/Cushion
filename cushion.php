@@ -184,6 +184,7 @@
 				"view"		=> $view,
 				"return"	=> $return
 			));
+			return $return;
 		}
 		/*
 		// $cushion->query("test","example","foo");
@@ -195,18 +196,21 @@
 				"return"	=> $return
 			));
 		}*/
-		function query($path, $decode=true) {
+		function query($path, $params=false, $decode=true) {
 			$pathArray 	= explode(".", $path);
 			$db 		= $pathArray[0];
 			$name 		= $pathArray[1];
 			$view 		= $pathArray[2];
 			
-			$return = $this->r("GET", $db."/_design/".$name."/_view/".$view, false, $decode);
+			$_params = $params===false?"":"?".http_build_query($params);
+			
+			$return = $this->r("GET", $db."/_design/".$name."/_view/".$view.$_params, false, $decode);
 			
 			$this->debug("query", array(
 				"view"		=> $view,
 				"return"	=> $return
 			));
+			return $return;
 		}
 		
 	}
