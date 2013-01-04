@@ -23,8 +23,8 @@
 	
 	echo "Inserted ID: ".$insertReturn["id"]."<hr />";
 	
-	/*
-	// check for data
+	
+	// check for data -> Create the views
 	$cushion->map_create("list", 	"function(doc){emit(doc._id, doc);}");
 	$cushion->map_create("byname", 	"function(doc){emit(doc.name, doc);}");
 	$cushion->map_create("bytime", 	"function(doc){emit(doc.timestamp, doc);}");
@@ -32,7 +32,7 @@
 	// list users
 	$view = $cushion->view_create("users", "users", array("list","byname","bytime"));
 	echo "view: <pre>".print_r($view, true)."</pre><hr />";
-	*/
+	
 	
 	// calling the view
 	$users1 = $cushion->query("users.users.list");
