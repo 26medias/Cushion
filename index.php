@@ -9,9 +9,8 @@
 	//$cushion->db_create("test2");
 	//$cushion->db_list();
 	
-	echo "<hr />";
-	
 	$insertReturn = $cushion->insert("test", array(
+		"timestamp"	=> time(),
 		"name"	=> "Lex",
 		"email"	=> "lex.onhym@gmail.com",
 		"sites"	=> array(
@@ -20,6 +19,17 @@
 			"htp://www.amazon.com"
 		)
 	));
+	
 	echo "Inserted ID: ".$insertReturn["id"]."<hr />";
 	
+	/*
+	// creating a new view
+	$cushion->map_create("foo", "function(doc){emit(doc._id, doc);}");
+	$cushion->map_create("foo2", "function(doc){emit(doc._id, doc.email);}");
+	
+	$cushion->view_create("test", "example", array("foo","foo2"));
+	*/
+	
+	// calling the view
+	$cushion->query("test.example.foo");
 ?>

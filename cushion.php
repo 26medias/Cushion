@@ -14,6 +14,8 @@
 			// Debug Mode
 			$this->debug_mode 	= true;
 			
+			$this->maps			= array();
+			$this->reduces		= array();
 		}
 		
 		
@@ -150,5 +152,62 @@
 			
 			return $return;
 		}
+		
+		/*** QUERY/MAP/REDUCE/VIEW MANAGEMENT ***/
+		function map_create($name, $map) {
+			$this->maps[$name] = $map;
+			return $map;
+		}
+		function reduce_create($name, $map) {
+			$this->reduces[$name] = $map;
+			return $map;
+		}
+		function view_create($db, $name, $views, $decode=true) {
+			$view = array(
+				"_id"	=>	"_design/".$name,
+				"views"	=> array()
+			);
+			foreach ($views as $viewName) {
+				if (!is_array($view["views"][$viewName])) {
+					$view["views"][$viewName] = array();
+				}
+				
+				if (array_key_exists($viewName, $this->maps)) {
+					$view["views"][$viewName]["map"] = $this->maps[$viewName];
+				}
+			}
+			
+			// save the view
+			$return = $this->r("PUT", $db."/_design/".$name, $view, $decode);
+			
+			$this->debug("view_create", array(
+				"view"		=> $view,
+				"return"	=> $return
+			));
+		}
+		/*
+		// $cushion->query("test","example","foo");
+		function query($db, $name, $view, $decode=true) {
+			$return = $this->r("GET", $db."/_design/".$name."/_view/".$view, false, $decode);
+			
+			$this->debug("query", array(
+				"view"		=> $view,
+				"return"	=> $return
+			));
+		}*/
+		function query($path, $decode=true) {
+			$pathArray 	= explode(".", $path);
+			$db 		= $pathArray[0];
+			$name 		= $pathArray[1];
+			$view 		= $pathArray[2];
+			
+			$return = $this->r("GET", $db."/_design/".$name."/_view/".$view, false, $decode);
+			
+			$this->debug("query", array(
+				"view"		=> $view,
+				"return"	=> $return
+			));
+		}
+		
 	}
 ?>
